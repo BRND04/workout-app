@@ -90,6 +90,15 @@
                     </div>
                 </div>
 
+                <!-- All-Time Stats -->
+                <div class="bg-gray-700 rounded-lg p-4">
+                    <h3 class="font-bold text-lg mb-3">All-Time Stats</h3>
+                    <div class="text-center">
+                        <p id="stats-avg-time" class="text-2xl font-bold">00:00</p>
+                        <p class="text-sm text-gray-400">Avg. Workout Time</p>
+                    </div>
+                </div>
+
                 <!-- Recent Activity -->
                 <div class="bg-gray-700 rounded-lg p-4">
                     <h3 class="font-bold text-lg mb-3">Recent Activity</h3>
@@ -148,6 +157,9 @@
                 <p id="timer-countdown" class="text-8xl font-bold text-indigo-400"></p>
             </div>
         </div>
+        <div class="absolute top-4 right-4 text-lg font-mono bg-gray-700 px-3 py-1 rounded-md shadow">
+            <span id="workout-timer">00:00</span>
+        </div>
         <div class="flex-shrink-0 space-y-4 pb-4">
             <button id="complete-set-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-4 rounded-lg text-2xl transition-colors duration-200">Complete Set</button>
             <button id="end-workout-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200">End Workout</button>
@@ -177,6 +189,18 @@
                     <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md">Save</button>
                 </div>
             </form>
+        </div>
+    </div>
+    
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gray-800 rounded-lg shadow-xl w-full max-w-sm p-6 text-center">
+            <h2 id="confirmation-title" class="text-xl font-bold text-white mb-4">Are you sure?</h2>
+            <p id="confirmation-message" class="text-gray-400 mb-6">Do you want to end this workout? Your progress will be saved.</p>
+            <div class="flex gap-4">
+                <button id="cancel-action-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md">Cancel</button>
+                <button id="confirm-action-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md">End Workout</button>
+            </div>
         </div>
     </div>
 
@@ -222,6 +246,7 @@
         const timerCountdown = document.getElementById('timer-countdown');
         const completeSetBtn = document.getElementById('complete-set-btn');
         const endWorkoutBtn = document.getElementById('end-workout-btn');
+        const workoutTimer = document.getElementById('workout-timer');
 
         // Dashboard elements
         const weeklyGoalInput = document.getElementById('weekly-goal-input');
@@ -231,6 +256,12 @@
         const statsSets = document.getElementById('stats-sets');
         const statsReps = document.getElementById('stats-reps');
         const recentActivityList = document.getElementById('recent-activity-list');
+        const statsAvgTime = document.getElementById('stats-avg-time');
+        
+        // Confirmation Modal elements
+        const confirmationModal = document.getElementById('confirmation-modal');
+        const confirmActionBtn = document.getElementById('confirm-action-btn');
+        const cancelActionBtn = document.getElementById('cancel-action-btn');
 
         // --- App State ---
         let routines = JSON.parse(localStorage.getItem('routines')) || [];
@@ -242,6 +273,8 @@
         let currentExerciseIndex = 0;
         let currentSet = 1;
         let timerInterval = null;
+        let workoutStartTime = null;
+        let workoutTimerInterval = null;
         const synth = new Tone.Synth().toDestination();
 
         // --- View Management ---
@@ -369,7 +402,20 @@
             hideEditorView(routineEditorView);
         };
 
-        // --- Exercise Modal Functions ---
+        // --- Modal Functions (Generic) ---
+        const openModal = (modalEl) => {
+            modalEl.classList.remove('hidden');
+            modalEl.classList.add('modal-enter');
+        };
+
+        const closeModal = (modalEl) => {
+            modalEl.classList.add('modal-exit');
+            setTimeout(() => {
+                modalEl.classList.add('hidden');
+                modalEl.classList.remove('modal-exit');
+            }, 200);
+        };
+
         const openExerciseModal = (exercise = null) => {
             exerciseForm.reset();
             editingExercise = exercise;
@@ -385,16 +431,7 @@
                 modalTitle.textContent = 'Add Exercise';
                 exerciseIdInput.value = '';
             }
-            exerciseModal.classList.remove('hidden');
-            exerciseModal.classList.add('modal-enter');
-        };
-
-        const closeExerciseModal = () => {
-            exerciseModal.classList.add('modal-exit');
-            setTimeout(() => {
-                exerciseModal.classList.add('hidden');
-                exerciseModal.classList.remove('modal-exit');
-            }, 200);
+            openModal(exerciseModal);
         };
 
         const handleExerciseFormSubmit = (e) => {
@@ -414,7 +451,7 @@
                 editingRoutine.exercises.push(exerciseData);
             }
             renderEditorExercises();
-            closeExerciseModal();
+            closeModal(exerciseModal);
         };
 
         // --- Active Workout Functions ---
@@ -426,6 +463,17 @@
             currentSet = 1;
             loadCurrentExercise();
             showEditorView(activeWorkoutView);
+
+            // Start the main workout timer
+            workoutStartTime = Date.now();
+            clearInterval(workoutTimerInterval);
+            workoutTimer.textContent = '00:00';
+            workoutTimerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - workoutStartTime) / 1000);
+                const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                const seconds = String(elapsed % 60).padStart(2, '0');
+                workoutTimer.textContent = `${minutes}:${seconds}`;
+            }, 1000);
         };
         
         const loadCurrentExercise = () => {
@@ -497,22 +545,35 @@
 
         const endWorkout = () => {
             clearInterval(timerInterval);
+            clearInterval(workoutTimerInterval); // Stop the main timer
+
             if (activeRoutine) {
+                const durationInSeconds = workoutStartTime ? Math.floor((Date.now() - workoutStartTime) / 1000) : 0;
                 const completionRecord = {
                     id: Date.now(),
                     routineId: activeRoutine.id,
                     routineName: activeRoutine.name,
                     exercises: activeRoutine.exercises,
-                    date: new Date().toISOString()
+                    date: new Date().toISOString(),
+                    duration: durationInSeconds
                 };
                 workoutHistory.push(completionRecord);
                 saveWorkoutHistory();
             }
             activeRoutine = null;
+            workoutStartTime = null;
+            workoutTimer.textContent = '00:00';
             hideEditorView(activeWorkoutView);
         };
 
         // --- Dashboard Functions ---
+        const formatTime = (totalSeconds) => {
+            if (isNaN(totalSeconds) || totalSeconds === 0) return '00:00';
+            const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+            const seconds = String(Math.floor(totalSeconds % 60)).padStart(2, '0');
+            return `${minutes}:${seconds}`;
+        }
+
         const renderDashboard = () => {
             const now = new Date();
             const dayOfWeek = now.getDay();
@@ -536,6 +597,17 @@
             statsSets.textContent = totalSets;
             statsReps.textContent = totalReps;
 
+            // Update All-Time stats
+            const workoutsWithDuration = workoutHistory.filter(h => typeof h.duration === 'number');
+            if (workoutsWithDuration.length > 0) {
+                const totalDuration = workoutsWithDuration.reduce((acc, h) => acc + h.duration, 0);
+                const avgDuration = totalDuration / workoutsWithDuration.length;
+                statsAvgTime.textContent = formatTime(avgDuration);
+            } else {
+                statsAvgTime.textContent = '00:00';
+            }
+
+            // Update recent activity
             recentActivityList.innerHTML = '';
             const recent = [...workoutHistory].reverse().slice(0, 5);
             if (recent.length === 0) {
@@ -604,10 +676,22 @@
         backToMainBtn.addEventListener('click', () => hideEditorView(routineEditorView));
         saveRoutineBtn.addEventListener('click', handleSaveRoutine);
         addExerciseBtn.addEventListener('click', () => openExerciseModal());
-        cancelExerciseBtn.addEventListener('click', closeExerciseModal);
+        cancelExerciseBtn.addEventListener('click', () => closeModal(exerciseModal));
         exerciseForm.addEventListener('submit', handleExerciseFormSubmit);
         completeSetBtn.addEventListener('click', handleCompleteSet);
-        endWorkoutBtn.addEventListener('click', endWorkout);
+        
+        endWorkoutBtn.addEventListener('click', () => {
+            openModal(confirmationModal);
+        });
+        
+        cancelActionBtn.addEventListener('click', () => {
+            closeModal(confirmationModal);
+        });
+
+        confirmActionBtn.addEventListener('click', () => {
+            endWorkout();
+            closeModal(confirmationModal);
+        });
 
         routineList.addEventListener('click', (e) => {
             const button = e.target.closest('button');
@@ -660,3 +744,4 @@
     </script>
 </body>
 </html>
+```eof
