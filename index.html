@@ -11,27 +11,201 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: #1f2937; }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; }
-        .view-enter { animation: slideIn 0.3s ease-out forwards; }
-        .view-exit { animation: slideOut 0.3s ease-in forwards; }
+
+        /* ── View slide transitions ── */
+        .view-enter { animation: slideIn 0.32s cubic-bezier(0.22,1,0.36,1) forwards; }
+        .view-exit  { animation: slideOut 0.28s cubic-bezier(0.55,0,1,0.45) forwards; }
         @keyframes slideIn {
-            from { opacity: 0; transform: translateX(100%); }
-            to { opacity: 1; transform: translateX(0); }
+            from { opacity: 0; transform: translateX(60px); }
+            to   { opacity: 1; transform: translateX(0); }
         }
         @keyframes slideOut {
             from { opacity: 1; transform: translateX(0); }
-            to { opacity: 0; transform: translateX(-100%); }
+            to   { opacity: 0; transform: translateX(-60px); }
         }
-        .modal-enter { animation: fadeIn 0.2s ease-out forwards; }
-        .modal-exit { animation: fadeOut 0.2s ease-in forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(20px); } }
-        .nav-active { color: #6366f1; /* indigo-500 */ }
+
+        /* ── Modal transitions ── */
+        .modal-enter { animation: modalIn 0.25s cubic-bezier(0.22,1,0.36,1) forwards; }
+        .modal-exit  { animation: modalOut 0.2s ease-in forwards; }
+        @keyframes modalIn  { from { opacity: 0; transform: translateY(24px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes modalOut { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(16px) scale(0.97); } }
+
+        /* ── Nav active state ── */
+        .nav-active { color: #818cf8; }
+        .nav-active svg { filter: drop-shadow(0 0 6px rgba(99,102,241,0.7)); }
+
+        /* ── Nav pill indicator ── */
+        .nav-btn { position: relative; transition: color 0.2s ease; }
+        .nav-btn::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%) scaleX(0);
+            width: 20px; height: 3px;
+            background: #6366f1;
+            border-radius: 2px;
+            transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
+        }
+        .nav-active::after { transform: translateX(-50%) scaleX(1); }
+
+        /* ── Drag-and-drop ── */
         .dragging {
-            opacity: 0.5;
-            background: #374151; /* gray-700 */
+            opacity: 0.45;
+            background: #374151;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            transform: scale(1.02);
+        }
+
+        /* ── Routine card entrance ── */
+        .card-enter {
+            animation: cardIn 0.4s cubic-bezier(0.22,1,0.36,1) both;
+        }
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(18px) scale(0.98); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* ── Dashboard section entrance ── */
+        .section-enter {
+            animation: sectionIn 0.4s cubic-bezier(0.22,1,0.36,1) both;
+        }
+        @keyframes sectionIn {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Ripple ── */
+        .ripple-host { position: relative; overflow: hidden; }
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.18);
+            transform: scale(0);
+            animation: rippleAnim 0.55s linear forwards;
+            pointer-events: none;
+        }
+        @keyframes rippleAnim {
+            to { transform: scale(4); opacity: 0; }
+        }
+
+        /* ── Animated progress bar fill ── */
+        #weekly-progress-bar { transition: width 0.8s cubic-bezier(0.22,1,0.36,1); }
+
+        /* ── Week circle pop-in ── */
+        .day-circle {
+            animation: circlePop 0.35s cubic-bezier(0.22,1,0.36,1) both;
+        }
+        @keyframes circlePop {
+            from { opacity: 0; transform: scale(0.5); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+
+        /* ── Stat number count-up flash ── */
+        .stat-flash { animation: statFlash 0.4s ease forwards; }
+        @keyframes statFlash {
+            0%   { transform: scale(1.4); opacity: 0; }
+            100% { transform: scale(1);   opacity: 1; }
+        }
+
+        /* ── Complete set button pulse ── */
+        #complete-set-btn {
+            transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+        }
+        #complete-set-btn:active { transform: scale(0.96); }
+        #complete-set-btn.pulse-once {
+            animation: btnPulse 0.3s cubic-bezier(0.22,1,0.36,1);
+        }
+        @keyframes btnPulse {
+            0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.55); }
+            70%  { box-shadow: 0 0 0 14px rgba(34,197,94,0); }
+            100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+        }
+
+        /* ── Timer countdown digit swap ── */
+        .timer-tick {
+            animation: timerTick 0.18s cubic-bezier(0.22,1,0.36,1);
+        }
+        @keyframes timerTick {
+            from { transform: translateY(-10px); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+
+        /* ── Active workout exercise name transition ── */
+        .exercise-change {
+            animation: exerciseSwap 0.35s cubic-bezier(0.22,1,0.36,1);
+        }
+        @keyframes exerciseSwap {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── FAB ── */
+        #add-routine-btn {
+            transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s ease;
+            box-shadow: 0 4px 20px rgba(99,102,241,0.45);
+        }
+        #add-routine-btn:hover {
+            transform: scale(1.12) rotate(90deg);
+            box-shadow: 0 6px 28px rgba(99,102,241,0.65);
+        }
+        #add-routine-btn:active { transform: scale(0.95) rotate(90deg); }
+
+        /* ── Card hover lift ── */
+        .routine-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .routine-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+        }
+
+        /* ── Header gradient shimmer ── */
+        header {
+            background: linear-gradient(180deg, #111827 0%, #0f172a 100%);
+            border-bottom: 1px solid rgba(99,102,241,0.15);
+        }
+
+        /* ── Rest day toggle transition ── */
+        #rest-day-toggles button {
+            transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+        }
+        #rest-day-toggles button:active { transform: scale(0.88); }
+
+        /* ── Input focus glow ── */
+        input:focus {
+            box-shadow: 0 0 0 2px rgba(99,102,241,0.4);
+            outline: none;
+        }
+
+        /* ── Confirmation modal shake ── */
+        .shake {
+            animation: shake 0.4s cubic-bezier(0.36,0.07,0.19,0.97);
+        }
+        @keyframes shake {
+            10%, 90% { transform: translateX(-2px); }
+            20%, 80% { transform: translateX(3px); }
+            30%, 50%, 70% { transform: translateX(-4px); }
+            40%, 60% { transform: translateX(4px); }
+        }
+
+        /* ── Workout complete glow ── */
+        .complete-glow {
+            animation: completeGlow 1.2s ease-in-out infinite alternate;
+        }
+        @keyframes completeGlow {
+            from { text-shadow: 0 0 8px rgba(99,102,241,0.4); }
+            to   { text-shadow: 0 0 22px rgba(99,102,241,0.9), 0 0 40px rgba(99,102,241,0.4); }
+        }
+
+        /* ── Workout timer subtle pulse ── */
+        #workout-timer {
+            transition: color 0.3s ease;
         }
     </style>
 </head>
@@ -56,53 +230,69 @@
         <!-- Dashboard View -->
         <div id="dashboard-view" class="flex-grow hidden">
             <main class="p-4 space-y-6 overflow-y-auto h-full">
+                <!-- Week Day Tracker -->
+                <div class="dash-section bg-gray-700/80 rounded-2xl p-4 border border-gray-600/30" data-delay="0">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-lg">This Week</h3>
+                        <span id="week-range-label" class="text-xs text-gray-400"></span>
+                    </div>
+                    <div id="week-day-tracker" class="grid grid-cols-7 gap-1 text-center"></div>
+                </div>
+
+                <!-- Rest Days -->
+                <div class="dash-section bg-gray-700/80 rounded-2xl p-4 border border-gray-600/30" data-delay="1">
+                    <h3 class="font-bold text-lg mb-3">Rest Days</h3>
+                    <p class="text-xs text-gray-400 mb-3">Days marked as rest won't turn red if you skip them.</p>
+                    <div id="rest-day-toggles" class="grid grid-cols-7 gap-1 text-center"></div>
+                </div>
+
                 <!-- Weekly Goal -->
-                <div class="bg-gray-700 rounded-lg p-4">
+                <div class="dash-section bg-gray-700/80 rounded-2xl p-4 border border-gray-600/30" data-delay="2">
                     <div class="flex justify-between items-center mb-2">
                         <h3 class="font-bold text-lg">Weekly Goal</h3>
                         <div class="flex items-center gap-2 text-sm">
                             <span>Goal:</span>
-                            <input type="number" id="weekly-goal-input" class="bg-gray-800 rounded w-12 text-center" value="3">
+                            <input type="number" id="weekly-goal-input" class="bg-gray-800 rounded-lg w-12 text-center border border-gray-600 py-1" value="3">
                         </div>
                     </div>
-                    <div class="w-full bg-gray-600 rounded-full h-2.5">
-                        <div id="weekly-progress-bar" class="bg-indigo-500 h-2.5 rounded-full" style="width: 0%"></div>
+                    <div class="w-full bg-gray-600/60 rounded-full h-2.5 overflow-hidden">
+                        <div id="weekly-progress-bar" class="bg-gradient-to-r from-indigo-500 to-violet-500 h-2.5 rounded-full" style="width: 0%"></div>
                     </div>
                     <p id="weekly-progress-text" class="text-right text-sm mt-1 text-gray-400">0/3 Workouts</p>
                 </div>
 
                 <!-- This Week's Stats -->
-                <div class="bg-gray-700 rounded-lg p-4">
+                <div class="dash-section bg-gray-700/80 rounded-2xl p-4 border border-gray-600/30" data-delay="3">
                     <h3 class="font-bold text-lg mb-3">This Week's Stats</h3>
                     <div class="grid grid-cols-3 gap-4 text-center">
-                        <div>
-                            <p id="stats-workouts" class="text-2xl font-bold">0</p>
-                            <p class="text-sm text-gray-400">Workouts</p>
+                        <div class="bg-gray-800/60 rounded-xl py-3">
+                            <p id="stats-workouts" class="text-2xl font-bold text-indigo-300">0</p>
+                            <p class="text-xs text-gray-400 mt-1">Workouts</p>
                         </div>
-                        <div>
-                            <p id="stats-sets" class="text-2xl font-bold">0</p>
-                            <p class="text-sm text-gray-400">Sets</p>
+                        <div class="bg-gray-800/60 rounded-xl py-3">
+                            <p id="stats-sets" class="text-2xl font-bold text-violet-300">0</p>
+                            <p class="text-xs text-gray-400 mt-1">Sets</p>
                         </div>
-                        <div>
-                            <p id="stats-reps" class="text-2xl font-bold">0</p>
-                            <p class="text-sm text-gray-400">Reps</p>
+                        <div class="bg-gray-800/60 rounded-xl py-3">
+                            <p id="stats-reps" class="text-2xl font-bold text-purple-300">0</p>
+                            <p class="text-xs text-gray-400 mt-1">Reps</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- All-Time Stats -->
-                <div class="bg-gray-700 rounded-lg p-4">
+                <div class="dash-section bg-gray-700/80 rounded-2xl p-4 border border-gray-600/30" data-delay="4">
                     <h3 class="font-bold text-lg mb-3">All-Time Stats</h3>
-                    <div class="text-center">
-                        <p id="stats-avg-time" class="text-2xl font-bold">00:00</p>
-                        <p class="text-sm text-gray-400">Avg. Workout Time</p>
+                    <div class="text-center bg-gray-800/60 rounded-xl py-4">
+                        <p id="stats-avg-time" class="text-3xl font-bold text-indigo-300">00:00</p>
+                        <p class="text-sm text-gray-400 mt-1">Avg. Workout Time</p>
                     </div>
                 </div>
 
                 <!-- Recent Activity -->
-                <div class="bg-gray-700 rounded-lg p-4">
+                <div class="dash-section bg-gray-700/80 rounded-2xl p-4 border border-gray-600/30" data-delay="5">
                     <h3 class="font-bold text-lg mb-3">Recent Activity</h3>
-                    <ul id="recent-activity-list" class="space-y-3">
+                    <ul id="recent-activity-list" class="space-y-2">
                        <li class="text-center text-gray-500">No workouts completed yet.</li>
                     </ul>
                 </div>
@@ -114,7 +304,7 @@
         </button>
 
         <!-- Bottom Navigation -->
-        <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-gray-900 p-2 flex justify-around border-t border-gray-700 z-20">
+        <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-gray-900/95 backdrop-blur-sm p-2 flex justify-around border-t border-indigo-900/40 z-20">
             <button data-view="main-view" class="nav-btn flex flex-col items-center text-gray-400 nav-active">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
                 <span class="text-xs">Routines</span>
@@ -157,18 +347,18 @@
                 <p id="timer-countdown" class="text-8xl font-bold text-indigo-400"></p>
             </div>
         </div>
-        <div class="absolute top-4 right-4 text-lg font-mono bg-gray-700 px-3 py-1 rounded-md shadow">
-            <span id="workout-timer">00:00</span>
+        <div class="absolute top-4 right-4 text-lg font-mono bg-gray-800/90 border border-indigo-500/30 px-3 py-1 rounded-lg shadow-lg backdrop-blur-sm">
+            <span id="workout-timer" class="text-indigo-300">00:00</span>
         </div>
         <div class="flex-shrink-0 space-y-4 pb-4">
-            <button id="complete-set-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-4 rounded-lg text-2xl transition-colors duration-200">Complete Set</button>
-            <button id="end-workout-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200">End Workout</button>
+            <button id="complete-set-btn" class="ripple-host w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-4 rounded-xl text-2xl shadow-lg shadow-green-900/40">Complete Set</button>
+            <button id="end-workout-btn" class="ripple-host w-full bg-red-600/80 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl transition-colors duration-200">End Workout</button>
         </div>
     </div>
 
     <!-- Exercise Modal -->
     <div id="exercise-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 hidden">
-        <div id="modal-content" class="bg-gray-800 rounded-lg shadow-xl w-full max-w-sm p-6 space-y-4">
+        <div id="modal-content" class="bg-gray-800 rounded-2xl shadow-2xl border border-gray-700/50 w-full max-w-sm p-6 space-y-4">
             <h2 id="modal-title" class="text-xl font-bold text-indigo-400">Add Exercise</h2>
             <form id="exercise-form" class="space-y-4">
                 <input type="hidden" id="exercise-id">
@@ -194,7 +384,7 @@
     
     <!-- Confirmation Modal -->
     <div id="confirmation-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-gray-800 rounded-lg shadow-xl w-full max-w-sm p-6 text-center">
+        <div class="bg-gray-800 rounded-2xl shadow-2xl border border-gray-700/50 w-full max-w-sm p-6 text-center">
             <h2 id="confirmation-title" class="text-xl font-bold text-white mb-4">Are you sure?</h2>
             <p id="confirmation-message" class="text-gray-400 mb-6">Do you want to end this workout? Your progress will be saved.</p>
             <div class="flex gap-4">
@@ -267,6 +457,8 @@
         let routines = JSON.parse(localStorage.getItem('routines')) || [];
         let workoutHistory = JSON.parse(localStorage.getItem('workoutHistory')) || [];
         let weeklyGoal = parseInt(localStorage.getItem('weeklyGoal')) || 3;
+        // restDays: array of day indices (0=Sun … 6=Sat) the user marks as rest days
+        let restDays = JSON.parse(localStorage.getItem('restDays')) || [];
         let editingRoutine = null;
         let editingExercise = null;
         let activeRoutine = null;
@@ -317,6 +509,7 @@
         const saveRoutines = () => localStorage.setItem('routines', JSON.stringify(routines));
         const saveWorkoutHistory = () => localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
         const saveWeeklyGoal = () => localStorage.setItem('weeklyGoal', weeklyGoal);
+        const saveRestDays = () => localStorage.setItem('restDays', JSON.stringify(restDays));
 
         // --- Routine Functions ---
         const renderRoutines = () => {
@@ -324,22 +517,23 @@
             if (routines.length === 0) {
                 routineList.appendChild(emptyState);
             } else {
-                routines.forEach(routine => {
+                routines.forEach((routine, index) => {
                     const routineEl = document.createElement('div');
-                    routineEl.className = 'bg-gray-700 rounded-lg p-4 shadow-md flex flex-col space-y-3';
+                    routineEl.className = 'routine-card card-enter bg-gray-700/80 rounded-2xl p-4 shadow-md flex flex-col space-y-3 border border-gray-600/30';
+                    routineEl.style.animationDelay = `${index * 60}ms`;
                     routineEl.dataset.id = routine.id;
                     let exercisesHtml = routine.exercises.map(ex => `<li class="text-sm text-gray-400">${ex.name}</li>`).join('');
 
                     routineEl.innerHTML = `
                         <div class="flex justify-between items-start">
                             <h2 class="text-xl font-bold text-white">${routine.name}</h2>
-                            <div>
-                                <button data-action="delete-routine" class="text-gray-400 hover:text-red-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>
-                                <button data-action="edit-routine" class="text-gray-400 hover:text-indigo-400 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>
+                            <div class="flex items-center">
+                                <button data-action="delete-routine" class="text-gray-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors duration-150"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>
+                                <button data-action="edit-routine" class="text-gray-500 hover:text-indigo-400 p-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors duration-150"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>
                             </div>
                         </div>
-                        <ul class="list-disc list-inside">${exercisesHtml}</ul>
-                        <button data-action="start-routine" class="mt-2 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center gap-2 ${routine.exercises.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}" ${routine.exercises.length === 0 ? 'disabled' : ''}>
+                        <ul class="list-disc list-inside space-y-0.5">${exercisesHtml}</ul>
+                        <button data-action="start-routine" class="ripple-host mt-2 w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors duration-200 shadow-lg shadow-indigo-900/30 ${routine.exercises.length === 0 ? 'opacity-40 cursor-not-allowed' : ''}" ${routine.exercises.length === 0 ? 'disabled' : ''}>
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" /></svg>
                             Start Routine
                         </button>
@@ -369,7 +563,7 @@
             }
             editingRoutine.exercises.forEach(ex => {
                 const exEl = document.createElement('div');
-                exEl.className = 'bg-gray-700 rounded-lg p-3 flex items-center justify-between';
+                exEl.className = 'card-enter bg-gray-700/80 rounded-xl p-3 flex items-center justify-between border border-gray-600/30';
                 exEl.dataset.id = ex.id;
                 exEl.setAttribute('draggable', true); // Make element draggable
                 exEl.innerHTML = `
@@ -479,9 +673,15 @@
         const loadCurrentExercise = () => {
             const exercise = activeRoutine.exercises[currentExerciseIndex];
             activeRoutineProgress.textContent = `Exercise ${currentExerciseIndex + 1} of ${activeRoutine.exercises.length}`;
+
+            // Animate name swap
+            activeExerciseName.classList.remove('exercise-change');
+            void activeExerciseName.offsetWidth;
             activeExerciseName.textContent = exercise.name;
+            activeExerciseName.classList.add('exercise-change');
+
             updateActiveSetUI();
-            
+
             setDetails.classList.remove('hidden');
             timerDisplay.classList.add('hidden');
             completeSetBtn.classList.remove('hidden');
@@ -496,6 +696,11 @@
         };
 
         const handleCompleteSet = () => {
+            // Pulse feedback
+            completeSetBtn.classList.remove('pulse-once');
+            void completeSetBtn.offsetWidth;
+            completeSetBtn.classList.add('pulse-once');
+
             const exercise = activeRoutine.exercises[currentExerciseIndex];
             if (currentSet < exercise.sets) {
                 startTimer(exercise.rest, 'REST', () => {
@@ -515,6 +720,9 @@
                 } else {
                     activeRoutineProgress.textContent = '';
                     activeExerciseName.textContent = "Routine Complete!";
+                    activeExerciseName.classList.remove('exercise-change', 'complete-glow');
+                    void activeExerciseName.offsetWidth;
+                    activeExerciseName.classList.add('exercise-change', 'complete-glow');
                     activeSetInfo.textContent = `Great work!`;
                     setDetails.classList.add('hidden');
                     timerDisplay.classList.add('hidden');
@@ -534,7 +742,10 @@
 
             timerInterval = setInterval(() => {
                 remainingTime--;
+                timerCountdown.classList.remove('timer-tick');
+                void timerCountdown.offsetWidth;
                 timerCountdown.textContent = remainingTime;
+                timerCountdown.classList.add('timer-tick');
                 if (remainingTime <= 0) {
                     clearInterval(timerInterval);
                     synth.triggerAttackRelease("C5", "8n");
@@ -566,6 +777,142 @@
             hideEditorView(activeWorkoutView);
         };
 
+        // --- Week Tracker & Rest Day Functions ---
+
+        // Returns a Date set to midnight local time for the given date
+        const toLocalMidnight = (d) => {
+            const copy = new Date(d);
+            copy.setHours(0, 0, 0, 0);
+            return copy;
+        };
+
+        // Returns the Monday of the week containing `date`
+        const getWeekStart = (date) => {
+            const d = toLocalMidnight(date);
+            const day = d.getDay(); // 0=Sun … 6=Sat
+            const diff = day === 0 ? -6 : 1 - day; // shift to Monday
+            d.setDate(d.getDate() + diff);
+            return d;
+        };
+
+        const renderWeekTracker = () => {
+            const tracker = document.getElementById('week-day-tracker');
+            const rangeLabel = document.getElementById('week-range-label');
+            if (!tracker) return;
+
+            const today = toLocalMidnight(new Date());
+            const weekStart = getWeekStart(new Date());
+
+            // Label: "Mon 17 Feb – Sun 23 Feb"
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            const fmt = (d) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+            rangeLabel.textContent = `${fmt(weekStart)} – ${fmt(weekEnd)}`;
+
+            // Build a Set of date strings (YYYY-MM-DD) that have a completed workout
+            const workedDates = new Set(
+                workoutHistory
+                    .map(h => toLocalMidnight(new Date(h.date)).toDateString())
+            );
+
+            const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            // dayLabels[i] corresponds to weekStart + i days
+            // weekStart is Monday, so day-of-week offset: Mon=0 … Sun=6
+            // restDays uses JS getDay() (0=Sun … 6=Sat), so we map accordingly
+            const dayIndexMap = [1, 2, 3, 4, 5, 6, 0]; // Mon→1, Tue→2, … Sun→0
+
+            tracker.innerHTML = '';
+            for (let i = 0; i < 7; i++) {
+                const dayDate = new Date(weekStart);
+                dayDate.setDate(weekStart.getDate() + i);
+
+                const isPast = dayDate < today;
+                const isToday = dayDate.toDateString() === today.toDateString();
+                const isFuture = dayDate > today;
+                const jsDay = dayIndexMap[i];
+                const isRest = restDays.includes(jsDay);
+                const hasWorkout = workedDates.has(dayDate.toDateString());
+
+                let circleClass = '';
+                let labelClass = 'text-gray-400';
+
+                if (isRest) {
+                    // Rest day — neutral grey regardless of workout status
+                    circleClass = 'bg-gray-500 border-2 border-gray-400';
+                    labelClass = 'text-gray-400';
+                } else if (hasWorkout) {
+                    circleClass = 'bg-green-500 border-2 border-green-400';
+                    labelClass = 'text-green-400';
+                } else if (isFuture) {
+                    // Not yet due — empty outline
+                    circleClass = 'bg-transparent border-2 border-gray-600';
+                    labelClass = 'text-gray-500';
+                } else {
+                    // Past or today with no workout and not a rest day → red
+                    circleClass = 'bg-red-500 border-2 border-red-400';
+                    labelClass = 'text-red-400';
+                }
+
+                // Today gets a white ring accent
+                const todayRing = isToday ? ' ring-2 ring-white ring-offset-1 ring-offset-gray-700' : '';
+
+                const col = document.createElement('div');
+                col.className = 'flex flex-col items-center gap-1';
+                col.innerHTML = `
+                    <span class="text-xs font-medium ${labelClass}">${dayLabels[i]}</span>
+                    <div class="day-circle w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold${todayRing} ${circleClass}" style="animation-delay:${i * 45}ms">
+                        ${isRest ? '—' : (hasWorkout ? '✓' : (isFuture ? '' : '✗'))}
+                    </div>
+                    <span class="text-xs ${labelClass}">${dayDate.getDate()}</span>
+                `;
+                tracker.appendChild(col);
+            }
+        };
+
+        const renderRestDayToggles = () => {
+            const container = document.getElementById('rest-day-toggles');
+            if (!container) return;
+
+            const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const dayIndexMap = [1, 2, 3, 4, 5, 6, 0]; // Mon→1 … Sun→0 (JS getDay values)
+
+            container.innerHTML = '';
+            for (let i = 0; i < 7; i++) {
+                const jsDay = dayIndexMap[i];
+                const isRest = restDays.includes(jsDay);
+
+                const col = document.createElement('div');
+                col.className = 'flex flex-col items-center gap-1';
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.dataset.day = jsDay;
+                btn.className = `w-8 h-8 rounded-full border-2 text-xs font-bold transition-colors duration-150 ${
+                    isRest
+                        ? 'bg-gray-500 border-gray-400 text-white'
+                        : 'bg-transparent border-gray-600 text-gray-500 hover:border-gray-400'
+                }`;
+                btn.textContent = isRest ? '—' : '';
+                btn.title = isRest ? 'Remove rest day' : 'Mark as rest day';
+
+                btn.addEventListener('click', () => {
+                    const d = parseInt(btn.dataset.day);
+                    if (restDays.includes(d)) {
+                        restDays = restDays.filter(x => x !== d);
+                    } else {
+                        restDays.push(d);
+                    }
+                    saveRestDays();
+                    renderRestDayToggles();
+                    renderWeekTracker();
+                });
+
+                col.innerHTML = `<span class="text-xs font-medium text-gray-400">${dayLabels[i]}</span>`;
+                col.appendChild(btn);
+                container.appendChild(col);
+            }
+        };
+
         // --- Dashboard Functions ---
         const formatTime = (totalSeconds) => {
             if (isNaN(totalSeconds) || totalSeconds === 0) return '00:00';
@@ -575,6 +922,10 @@
         }
 
         const renderDashboard = () => {
+            renderWeekTracker();
+            renderRestDayToggles();
+            animateDashSections();
+
             const now = new Date();
             const dayOfWeek = now.getDay();
             const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
@@ -593,9 +944,9 @@
                 totalSets += ex.sets;
                 totalReps += ex.sets * ex.reps;
             }));
-            statsWorkouts.textContent = completedCount;
-            statsSets.textContent = totalSets;
-            statsReps.textContent = totalReps;
+            flashStat(statsWorkouts, completedCount);
+            flashStat(statsSets, totalSets);
+            flashStat(statsReps, totalReps);
 
             // Update All-Time stats
             const workoutsWithDuration = workoutHistory.filter(h => typeof h.duration === 'number');
@@ -615,7 +966,7 @@
             } else {
                 recent.forEach(h => {
                     const li = document.createElement('li');
-                    li.className = 'flex justify-between items-center bg-gray-800 p-2 rounded-md';
+                    li.className = 'flex justify-between items-center bg-gray-800/80 p-3 rounded-xl border border-gray-700/40 card-enter';
                     const date = new Date(h.date);
                     li.innerHTML = `<span>${h.routineName}</span><span class="text-xs text-gray-400">${date.toLocaleDateString()}</span>`;
                     recentActivityList.appendChild(li);
@@ -669,6 +1020,49 @@
                 }
             }, { offset: Number.NEGATIVE_INFINITY }).element;
         }
+
+        // --- Ripple utility ---
+        const addRipple = (btn, e) => {
+            const rect = btn.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = (e.clientX - rect.left) - size / 2;
+            const y = (e.clientY - rect.top)  - size / 2;
+            const ripple = document.createElement('span');
+            ripple.className = 'ripple';
+            ripple.style.cssText = `width:${size}px;height:${size}px;left:${x}px;top:${y}px`;
+            btn.appendChild(ripple);
+            ripple.addEventListener('animationend', () => ripple.remove());
+        };
+
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.ripple-host');
+            if (btn) addRipple(btn, e);
+        });
+
+        // --- Dashboard section stagger ---
+        const animateDashSections = () => {
+            document.querySelectorAll('.dash-section').forEach(el => {
+                const delay = (parseInt(el.dataset.delay) || 0) * 70;
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(14px)';
+                el.style.transition = 'none';
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        el.style.transition = `opacity 0.4s cubic-bezier(0.22,1,0.36,1) ${delay}ms, transform 0.4s cubic-bezier(0.22,1,0.36,1) ${delay}ms`;
+                        el.style.opacity = '1';
+                        el.style.transform = 'translateY(0)';
+                    }, 10);
+                });
+            });
+        };
+
+        // --- Stat number flash ---
+        const flashStat = (el, value) => {
+            el.textContent = value;
+            el.classList.remove('stat-flash');
+            void el.offsetWidth; // reflow
+            el.classList.add('stat-flash');
+        };
 
         // --- Event Listeners ---
         navButtons.forEach(btn => btn.addEventListener('click', () => setActiveView(btn.dataset.view)));
