@@ -255,6 +255,13 @@
                             <input type="number" id="weekly-goal-input" class="bg-gray-800 rounded-lg w-12 text-center border border-gray-600 py-1" value="3">
                         </div>
                     </div>
+                    <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-600/40">
+                        <span class="text-sm text-gray-400">Next Up countdown</span>
+                        <div class="flex items-center gap-2 text-sm">
+                            <input type="number" id="next-up-input" min="0" max="30" class="bg-gray-800 rounded-lg w-12 text-center border border-gray-600 py-1" value="5">
+                            <span class="text-gray-400">sec</span>
+                        </div>
+                    </div>
                     <div class="w-full bg-gray-600/60 rounded-full h-2.5 overflow-hidden">
                         <div id="weekly-progress-bar" class="bg-gradient-to-r from-indigo-500 to-violet-500 h-2.5 rounded-full" style="width: 0%"></div>
                     </div>
@@ -350,8 +357,12 @@
         <div class="absolute top-4 right-4 text-lg font-mono bg-gray-800/90 border border-indigo-500/30 px-3 py-1 rounded-lg shadow-lg backdrop-blur-sm">
             <span id="workout-timer" class="text-indigo-300">00:00</span>
         </div>
-        <div class="flex-shrink-0 space-y-4 pb-4">
+        <div class="flex-shrink-0 space-y-3 pb-4">
             <button id="complete-set-btn" class="ripple-host w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-4 rounded-xl text-2xl shadow-lg shadow-green-900/40">Complete Set</button>
+            <button id="add-extra-set-btn" class="ripple-host w-full bg-indigo-600/60 hover:bg-indigo-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors duration-200 flex items-center justify-center gap-2 border border-indigo-500/30">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                Extra Set
+            </button>
             <button id="end-workout-btn" class="ripple-host w-full bg-red-600/80 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl transition-colors duration-200">End Workout</button>
         </div>
     </div>
@@ -435,11 +446,13 @@
         const timerTitle = document.getElementById('timer-title');
         const timerCountdown = document.getElementById('timer-countdown');
         const completeSetBtn = document.getElementById('complete-set-btn');
+        const addExtraSetBtn = document.getElementById('add-extra-set-btn');
         const endWorkoutBtn = document.getElementById('end-workout-btn');
         const workoutTimer = document.getElementById('workout-timer');
 
         // Dashboard elements
         const weeklyGoalInput = document.getElementById('weekly-goal-input');
+        const nextUpInput = document.getElementById('next-up-input');
         const weeklyProgressBar = document.getElementById('weekly-progress-bar');
         const weeklyProgressText = document.getElementById('weekly-progress-text');
         const statsWorkouts = document.getElementById('stats-workouts');
@@ -457,6 +470,7 @@
         let routines = JSON.parse(localStorage.getItem('routines')) || [];
         let workoutHistory = JSON.parse(localStorage.getItem('workoutHistory')) || [];
         let weeklyGoal = parseInt(localStorage.getItem('weeklyGoal')) || 3;
+        let nextUpDuration = parseInt(localStorage.getItem('nextUpDuration')) ?? 5;
         // restDays: array of day indices (0=Sun … 6=Sat) the user marks as rest days
         let restDays = JSON.parse(localStorage.getItem('restDays')) || [];
         let editingRoutine = null;
@@ -467,6 +481,9 @@
         let timerInterval = null;
         let workoutStartTime = null;
         let workoutTimerInterval = null;
+        let awayTimeout = null;
+        let alarmLoop = null;
+        let timerMode = null; // 'REST' | 'NEXT UP' | null
         const synth = new Tone.Synth().toDestination();
 
         // --- View Management ---
@@ -509,7 +526,18 @@
         const saveRoutines = () => localStorage.setItem('routines', JSON.stringify(routines));
         const saveWorkoutHistory = () => localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
         const saveWeeklyGoal = () => localStorage.setItem('weeklyGoal', weeklyGoal);
+        const saveNextUpDuration = () => localStorage.setItem('nextUpDuration', nextUpDuration);
         const saveRestDays = () => localStorage.setItem('restDays', JSON.stringify(restDays));
+        const saveActiveWorkout = () => {
+            if (!activeRoutine) return;
+            localStorage.setItem('activeWorkout', JSON.stringify({
+                routineId: activeRoutine.id,
+                currentExerciseIndex,
+                currentSet,
+                workoutStartTime
+            }));
+        };
+        const clearActiveWorkout = () => localStorage.removeItem('activeWorkout');
 
         // --- Routine Functions ---
         const renderRoutines = () => {
@@ -649,25 +677,30 @@
         };
 
         // --- Active Workout Functions ---
-        const startRoutine = (routineId) => {
-            activeRoutine = routines.find(r => r.id === routineId);
-            if (!activeRoutine || activeRoutine.exercises.length === 0) return;
-            
-            currentExerciseIndex = 0;
-            currentSet = 1;
-            loadCurrentExercise();
-            showEditorView(activeWorkoutView);
-
-            // Start the main workout timer
-            workoutStartTime = Date.now();
+        const startWorkoutTimer = () => {
             clearInterval(workoutTimerInterval);
-            workoutTimer.textContent = '00:00';
             workoutTimerInterval = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - workoutStartTime) / 1000);
                 const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
                 const seconds = String(elapsed % 60).padStart(2, '0');
                 workoutTimer.textContent = `${minutes}:${seconds}`;
             }, 1000);
+        };
+
+        const startRoutine = (routineId) => {
+            activeRoutine = routines.find(r => r.id === routineId);
+            if (!activeRoutine || activeRoutine.exercises.length === 0) return;
+
+            currentExerciseIndex = 0;
+            currentSet = 1;
+            workoutStartTime = Date.now();
+            loadCurrentExercise();
+            showEditorView(activeWorkoutView);
+            saveActiveWorkout();
+
+            // Start the main workout timer
+            workoutTimer.textContent = '00:00';
+            startWorkoutTimer();
         };
         
         const loadCurrentExercise = () => {
@@ -703,9 +736,12 @@
 
             const exercise = activeRoutine.exercises[currentExerciseIndex];
             if (currentSet < exercise.sets) {
+                timerMode = 'REST';
                 startTimer(exercise.rest, 'REST', () => {
+                    timerMode = null;
                     currentSet++;
                     updateActiveSetUI();
+                    saveActiveWorkout();
                     setDetails.classList.remove('hidden');
                     timerDisplay.classList.add('hidden');
                     completeSetBtn.classList.remove('hidden');
@@ -713,9 +749,12 @@
             } else {
                 currentExerciseIndex++;
                 if (currentExerciseIndex < activeRoutine.exercises.length) {
-                    startTimer(5, 'NEXT UP', () => {
+                    timerMode = 'NEXT UP';
+                    startTimer(nextUpDuration, 'NEXT UP', () => {
+                        timerMode = null;
                         currentSet = 1;
                         loadCurrentExercise();
+                        saveActiveWorkout();
                     });
                 } else {
                     activeRoutineProgress.textContent = '';
@@ -727,7 +766,38 @@
                     setDetails.classList.add('hidden');
                     timerDisplay.classList.add('hidden');
                     completeSetBtn.classList.add('hidden');
+                    addExtraSetBtn.classList.add('hidden');
                 }
+            }
+        };
+
+        const addExtraSet = () => {
+            if (timerMode === 'NEXT UP') {
+                // Just finished what was the "last" set — cancel the transition and add a set back
+                clearInterval(timerInterval);
+                timerInterval = null;
+                timerMode = 'REST';
+                currentExerciseIndex--;
+                const exercise = activeRoutine.exercises[currentExerciseIndex];
+                exercise.sets++;
+                activeRoutineProgress.textContent = `Exercise ${currentExerciseIndex + 1} of ${activeRoutine.exercises.length}`;
+                updateActiveSetUI();
+                // Start rest before the extra set (currentSet will increment in callback)
+                startTimer(exercise.rest, 'REST', () => {
+                    timerMode = null;
+                    currentSet++;
+                    updateActiveSetUI();
+                    saveActiveWorkout();
+                    setDetails.classList.remove('hidden');
+                    timerDisplay.classList.add('hidden');
+                    completeSetBtn.classList.remove('hidden');
+                });
+            } else {
+                // During active set or REST — just extend the current exercise
+                const exercise = activeRoutine.exercises[currentExerciseIndex];
+                exercise.sets++;
+                updateActiveSetUI();
+                saveActiveWorkout();
             }
         };
 
@@ -754,9 +824,42 @@
             }, 1000);
         };
 
+        // --- Away Alarm ---
+        const stopAlarm = () => {
+            clearInterval(alarmLoop);
+            alarmLoop = null;
+        };
+
+        const startAlarm = () => {
+            stopAlarm();
+            const beep = () => {
+                synth.triggerAttackRelease('A5', '16n');
+                setTimeout(() => synth.triggerAttackRelease('A5', '16n'), 180);
+                setTimeout(() => synth.triggerAttackRelease('A5', '16n'), 360);
+            };
+            beep();
+            alarmLoop = setInterval(beep, 2500);
+        };
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (activeRoutine) {
+                    clearTimeout(awayTimeout);
+                    awayTimeout = setTimeout(startAlarm, 60000);
+                }
+            } else {
+                clearTimeout(awayTimeout);
+                awayTimeout = null;
+                stopAlarm();
+            }
+        });
+
         const endWorkout = () => {
             clearInterval(timerInterval);
             clearInterval(workoutTimerInterval); // Stop the main timer
+            clearTimeout(awayTimeout);
+            awayTimeout = null;
+            stopAlarm();
 
             if (activeRoutine) {
                 const durationInSeconds = workoutStartTime ? Math.floor((Date.now() - workoutStartTime) / 1000) : 0;
@@ -774,6 +877,7 @@
             activeRoutine = null;
             workoutStartTime = null;
             workoutTimer.textContent = '00:00';
+            clearActiveWorkout();
             hideEditorView(activeWorkoutView);
         };
 
@@ -1073,6 +1177,7 @@
         cancelExerciseBtn.addEventListener('click', () => closeModal(exerciseModal));
         exerciseForm.addEventListener('submit', handleExerciseFormSubmit);
         completeSetBtn.addEventListener('click', handleCompleteSet);
+        addExtraSetBtn.addEventListener('click', addExtraSet);
         
         endWorkoutBtn.addEventListener('click', () => {
             openModal(confirmationModal);
@@ -1130,10 +1235,36 @@
             }
         });
 
+        nextUpInput.addEventListener('change', (e) => {
+            const val = parseInt(e.target.value);
+            if (!isNaN(val) && val >= 0) {
+                nextUpDuration = val;
+                saveNextUpDuration();
+            }
+        });
+
         // --- Initial Load ---
         weeklyGoalInput.value = weeklyGoal;
+        nextUpInput.value = nextUpDuration;
         renderRoutines();
         setActiveView('main-view');
+
+        // Restore active workout session if one was in progress
+        const savedWorkout = JSON.parse(localStorage.getItem('activeWorkout'));
+        if (savedWorkout) {
+            const routine = routines.find(r => r.id === savedWorkout.routineId);
+            if (routine && savedWorkout.currentExerciseIndex < routine.exercises.length) {
+                activeRoutine = routine;
+                currentExerciseIndex = savedWorkout.currentExerciseIndex;
+                currentSet = savedWorkout.currentSet;
+                workoutStartTime = savedWorkout.workoutStartTime;
+                loadCurrentExercise();
+                showEditorView(activeWorkoutView);
+                startWorkoutTimer();
+            } else {
+                clearActiveWorkout();
+            }
+        }
     });
     </script>
 </body>
