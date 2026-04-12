@@ -825,6 +825,10 @@
         };
 
         // --- Away Alarm ---
+        // Note: mobile browsers suspend JS and audio when backgrounded, so the alarm
+        // plays the moment you return to the tab if you were away for 60+ seconds.
+        let awayAt = null;
+
         const stopAlarm = () => {
             clearInterval(alarmLoop);
             alarmLoop = null;
@@ -833,6 +837,7 @@
         const startAlarm = () => {
             stopAlarm();
             const beep = () => {
+                Tone.start();
                 synth.triggerAttackRelease('A5', '16n');
                 setTimeout(() => synth.triggerAttackRelease('A5', '16n'), 180);
                 setTimeout(() => synth.triggerAttackRelease('A5', '16n'), 360);
@@ -844,13 +849,23 @@
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 if (activeRoutine) {
+                    awayAt = Date.now();
+                    // Best-effort background attempt — works on some desktop/Android setups
                     clearTimeout(awayTimeout);
-                    awayTimeout = setTimeout(startAlarm, 60000);
+                    awayTimeout = setTimeout(() => {
+                        Tone.start().then(startAlarm).catch(() => {});
+                    }, 60000);
                 }
             } else {
                 clearTimeout(awayTimeout);
                 awayTimeout = null;
-                stopAlarm();
+                // Reliable fallback: play on return if away for 60+ seconds
+                if (awayAt !== null && activeRoutine && (Date.now() - awayAt) >= 60000) {
+                    Tone.start().then(startAlarm).catch(() => {});
+                } else {
+                    stopAlarm();
+                }
+                awayAt = null;
             }
         });
 
