@@ -359,10 +359,7 @@
         </div>
         <div class="flex-shrink-0 space-y-3 pb-4">
             <button id="complete-set-btn" class="ripple-host w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 px-4 rounded-xl text-2xl shadow-lg shadow-green-900/40">Complete Set</button>
-            <button id="add-extra-set-btn" class="ripple-host w-full bg-indigo-600/60 hover:bg-indigo-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors duration-200 flex items-center justify-center gap-2 border border-indigo-500/30">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
-                Extra Set
-            </button>
+
             <button id="end-workout-btn" class="ripple-host w-full bg-red-600/80 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl transition-colors duration-200">End Workout</button>
         </div>
     </div>
@@ -446,7 +443,7 @@
         const timerTitle = document.getElementById('timer-title');
         const timerCountdown = document.getElementById('timer-countdown');
         const completeSetBtn = document.getElementById('complete-set-btn');
-        const addExtraSetBtn = document.getElementById('add-extra-set-btn');
+
         const endWorkoutBtn = document.getElementById('end-workout-btn');
         const workoutTimer = document.getElementById('workout-timer');
 
@@ -556,6 +553,7 @@
                         <div class="flex justify-between items-start">
                             <h2 class="text-xl font-bold text-white">${routine.name}</h2>
                             <div class="flex items-center">
+                                <button data-action="duplicate-routine" title="Duplicate routine" class="text-gray-500 hover:text-green-400 p-1.5 rounded-lg hover:bg-green-500/10 transition-colors duration-150"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" /><path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h8a2 2 0 00-2-2H5z" /></svg></button>
                                 <button data-action="delete-routine" class="text-gray-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors duration-150"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>
                                 <button data-action="edit-routine" class="text-gray-500 hover:text-indigo-400 p-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors duration-150"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>
                             </div>
@@ -766,40 +764,11 @@
                     setDetails.classList.add('hidden');
                     timerDisplay.classList.add('hidden');
                     completeSetBtn.classList.add('hidden');
-                    addExtraSetBtn.classList.add('hidden');
+
                 }
             }
         };
 
-        const addExtraSet = () => {
-            if (timerMode === 'NEXT UP') {
-                // Just finished what was the "last" set — cancel the transition and add a set back
-                clearInterval(timerInterval);
-                timerInterval = null;
-                timerMode = 'REST';
-                currentExerciseIndex--;
-                const exercise = activeRoutine.exercises[currentExerciseIndex];
-                exercise.sets++;
-                activeRoutineProgress.textContent = `Exercise ${currentExerciseIndex + 1} of ${activeRoutine.exercises.length}`;
-                updateActiveSetUI();
-                // Start rest before the extra set (currentSet will increment in callback)
-                startTimer(exercise.rest, 'REST', () => {
-                    timerMode = null;
-                    currentSet++;
-                    updateActiveSetUI();
-                    saveActiveWorkout();
-                    setDetails.classList.remove('hidden');
-                    timerDisplay.classList.add('hidden');
-                    completeSetBtn.classList.remove('hidden');
-                });
-            } else {
-                // During active set or REST — just extend the current exercise
-                const exercise = activeRoutine.exercises[currentExerciseIndex];
-                exercise.sets++;
-                updateActiveSetUI();
-                saveActiveWorkout();
-            }
-        };
 
         const startTimer = (duration, title, onComplete) => {
             let remainingTime = duration;
@@ -1199,7 +1168,7 @@
         cancelExerciseBtn.addEventListener('click', () => closeModal(exerciseModal));
         exerciseForm.addEventListener('submit', handleExerciseFormSubmit);
         completeSetBtn.addEventListener('click', handleCompleteSet);
-        addExtraSetBtn.addEventListener('click', addExtraSet);
+
         
         endWorkoutBtn.addEventListener('click', () => {
             openModal(confirmationModal);
@@ -1223,6 +1192,16 @@
 
             if (action === 'start-routine') startRoutine(routineId);
             if (action === 'edit-routine') openRoutineEditor(routineId);
+            if (action === 'duplicate-routine') {
+                const src = routines.find(r => r.id === routineId);
+                const copy = JSON.parse(JSON.stringify(src));
+                copy.id = Date.now();
+                copy.name = src.name + ' (Copy)';
+                copy.exercises.forEach((ex, i) => { ex.id = Date.now() + i + 1; });
+                routines.push(copy);
+                saveRoutines();
+                renderRoutines();
+            }
             if (action === 'delete-routine') {
                 routines = routines.filter(r => r.id !== routineId);
                 saveRoutines();
@@ -1300,3 +1279,4 @@
     </script>
 </body>
 </html>
+```eof
