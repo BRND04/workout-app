@@ -145,6 +145,15 @@
             to   { opacity: 1; transform: translateY(0); }
         }
 
+        /* ── Routine drag-to-reorder ── */
+        .drag-handle { cursor: grab; touch-action: none; }
+        .drag-handle:active { cursor: grabbing; }
+        .routine-card.dragging { opacity: 0.4; }
+        .routine-card.drag-over {
+            border-color: rgb(99 102 241 / 0.7);
+            background-color: rgb(99 102 241 / 0.08);
+        }
+
         /* ── FAB ── */
         #add-routine-btn {
             transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s ease;
@@ -472,6 +481,7 @@
         let restDays = JSON.parse(localStorage.getItem('restDays')) || [];
         let editingRoutine = null;
         let editingExercise = null;
+        let dragSrcId = null;
         let activeRoutine = null;
         let currentExerciseIndex = 0;
         let currentSet = 1;
@@ -547,12 +557,16 @@
                     routineEl.className = 'routine-card card-enter bg-gray-700/80 rounded-2xl p-4 shadow-md flex flex-col space-y-3 border border-gray-600/30';
                     routineEl.style.animationDelay = `${index * 60}ms`;
                     routineEl.dataset.id = routine.id;
+                    routineEl.draggable = true;
                     let exercisesHtml = routine.exercises.map(ex => `<li class="text-sm text-gray-400">${ex.name}</li>`).join('');
 
                     routineEl.innerHTML = `
                         <div class="flex justify-between items-start">
-                            <h2 class="text-xl font-bold text-white">${routine.name}</h2>
-                            <div class="flex items-center">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="drag-handle flex-shrink-0 text-gray-600 hover:text-gray-400 p-1" title="Drag to reorder"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"/></svg></span>
+                                <h2 class="text-xl font-bold text-white truncate">${routine.name}</h2>
+                            </div>
+                            <div class="flex items-center flex-shrink-0">
                                 <button data-action="duplicate-routine" title="Duplicate routine" class="text-gray-500 hover:text-green-400 p-1.5 rounded-lg hover:bg-green-500/10 transition-colors duration-150"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" /><path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h8a2 2 0 00-2-2H5z" /></svg></button>
                                 <button data-action="delete-routine" class="text-gray-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors duration-150"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>
                                 <button data-action="edit-routine" class="text-gray-500 hover:text-indigo-400 p-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors duration-150"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>
@@ -564,6 +578,32 @@
                             Start Routine
                         </button>
                     `;
+
+                    routineEl.addEventListener('dragstart', (e) => {
+                        dragSrcId = routine.id;
+                        setTimeout(() => routineEl.classList.add('dragging'), 0);
+                        e.dataTransfer.effectAllowed = 'move';
+                    });
+                    routineEl.addEventListener('dragend', () => {
+                        routineEl.classList.remove('dragging');
+                        document.querySelectorAll('.routine-card').forEach(c => c.classList.remove('drag-over'));
+                    });
+                    routineEl.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        document.querySelectorAll('.routine-card').forEach(c => c.classList.remove('drag-over'));
+                        if (dragSrcId !== routine.id) routineEl.classList.add('drag-over');
+                    });
+                    routineEl.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        if (dragSrcId === null || dragSrcId === routine.id) return;
+                        const srcIdx = routines.findIndex(r => r.id === dragSrcId);
+                        const tgtIdx = routines.findIndex(r => r.id === routine.id);
+                        routines.splice(tgtIdx, 0, routines.splice(srcIdx, 1)[0]);
+                        saveRoutines();
+                        renderRoutines();
+                    });
+
                     routineList.appendChild(routineEl);
                 });
             }
